@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 200 27% 98%;
+  --foreground: 215 28% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 28% 17%;
+  --primary: 149 43% 53%;
+  --primary-foreground: 0 0% 100%;
+  --primary-soft: 146 53% 95%;
+  --secondary: 210 24% 94%;
+  --secondary-foreground: 215 28% 17%;
+  --muted: 220 18% 95%;
+  --muted-foreground: 219 13% 60%;
+  --accent: 187 38% 92%;
+  --accent-foreground: 203 50% 22%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 22% 91%;
+  --input: 220 22% 91%;
+  --ring: 149 43% 53%;
+  --radius: 0.5rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  min-height: 100%;
+  background: hsl(var(--background));
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: Inter, Pretendard, "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(85, 187, 134, 0.22);
+}
+
+.map-grid {
+  background-image:
+    linear-gradient(rgba(31, 41, 55, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 41, 55, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
