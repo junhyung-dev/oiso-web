@@ -144,6 +144,10 @@ export type ChatHistoryListResponse = ApiSuccess & {
   last_timestamp?: string | null;
 };
 
+export type ChatHistoryDeleteResponse = ApiSuccess & {
+  chat_id: string;
+};
+
 export type ChatContextTimelineItem = {
   kind: "message" | "event";
   seq: number;

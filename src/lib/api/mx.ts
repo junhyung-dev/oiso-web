@@ -16,12 +16,14 @@ export type GetClustersParams = {
 export function getClusters(params: GetClustersParams) {
   return apiRequest<GetClustersResponse>(
     `/mx/get_clusters${toQueryString(params)}`,
+    { auth: true },
   );
 }
 
 export function getClusterInfo(clusterNo: number) {
   return apiRequest<ClusterInfoResponse>(
     `/mx/get_cluster_info${toQueryString({ cluster_no: clusterNo })}`,
+    { auth: true },
   );
 }
 
@@ -40,5 +42,6 @@ export type SearchResultsParams = {
 export function getSearchResults(params: SearchResultsParams) {
   return apiRequest<GetSearchResultsResponse>(
     `/mx/get_search_results${toQueryString(params)}`,
+    { auth: true },
   );
 }

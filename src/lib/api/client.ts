@@ -40,7 +40,7 @@ async function parseError(response: Response) {
   }
 }
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
 
@@ -75,6 +75,8 @@ export async function apiRequest<T>(
     const accessToken = getAccessToken();
     if (accessToken) {
       requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+    } else if (!getRefreshToken()) {
+      throw new ApiClientError(401, "Login is required.");
     }
   }
 
