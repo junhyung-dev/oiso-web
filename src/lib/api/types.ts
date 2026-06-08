@@ -165,19 +165,32 @@ export type ChatContextResponse = ApiSuccess & {
   timeline: ChatContextTimelineItem[];
 };
 
-export type MenuInformation = {
+export type PicNOrderMenu = {
   number: number;
   text_in_original_language: string;
   text_in_user_language: string;
   price: number;
 };
 
+export type MenuInformation = PicNOrderMenu;
+
+export type PicNOrderOcrStructure = {
+  menus: PicNOrderMenu[];
+  user_language: string;
+  original_language: string;
+};
+
 export type PicNOrderResponse = ApiSuccess & {
-  ocr_structure: {
-    menus: MenuInformation[];
-    user_language: string;
-    original_language: string;
-  } | null;
+  ocr_structure: PicNOrderOcrStructure | null;
+};
+
+export type OrderableMenuItem = {
+  id: string;
+  number: number;
+  originalName: string;
+  displayName: string;
+  price: number;
+  quantity: number;
 };
 
 export type LikeItem = {
