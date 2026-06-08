@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Bookmark,
   ChevronLeft,
@@ -79,7 +79,7 @@ type ClusterPreview = {
   thumbnailUrl?: string | null;
 };
 
-const DEFAULT_CENTER: LatLng = { lat: 35.889, lng: 128.612 };
+const DEFAULT_CENTER: LatLng = { lat: 35.86866, lng: 128.58178 };
 const LIST_PANEL_WIDTH = 386;
 const DETAIL_PANEL_WIDTH = 430;
 
@@ -223,15 +223,71 @@ function toBoundsQuery(bounds: MapBounds) {
   };
 }
 
+function getClusterMarkerKey(cluster: ClusterPreview) {
+  return `cluster-${cluster.no}`;
+}
+
 function RecommendationCard({
   cluster,
   selected,
   onSelect,
+  compact = false,
 }: {
   cluster: ClusterPreview;
   selected: boolean;
   onSelect: () => void;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cn(
+          "w-full rounded-md border bg-background p-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          selected
+            ? "border-primary bg-primary-soft"
+            : "hover:border-primary/50 hover:bg-muted/60",
+        )}
+      >
+        <div className="flex gap-3">
+          <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-md bg-[#dfeee7] text-primary">
+            {cluster.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cluster.thumbnailUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Utensils className="h-7 w-7" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-extrabold text-[#0475d9]">
+              {cluster.name}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">
+              {cluster.category} · {cluster.distance}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {cluster.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-sm bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -355,7 +411,7 @@ export function MapScreen() {
   const isAuthenticated = status === "authenticated";
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<KakaoMap | null>(null);
-  const markersRef = useRef<KakaoMarker[]>([]);
+  const markersRef = useRef<Map<string, KakaoMarker>>(new Map());
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
@@ -392,7 +448,10 @@ export function MapScreen() {
       const queryBounds =
         bounds ||
         ({
-          topLeft: { lat: activePosition.lat + 0.02, lng: activePosition.lng - 0.02 },
+          topLeft: {
+            lat: activePosition.lat + 0.02,
+            lng: activePosition.lng - 0.02,
+          },
           bottomRight: {
             lat: activePosition.lat - 0.02,
             lng: activePosition.lng + 0.02,
@@ -406,7 +465,8 @@ export function MapScreen() {
         nearmode: nearMode,
       });
     },
-    enabled: isAuthenticated && mapReady,
+    enabled: isAuthenticated && mapReady && !deepLinkedCluster,
+    placeholderData: keepPreviousData,
   });
 
   const autocompleteQuery = useQuery({
@@ -466,23 +526,19 @@ export function MapScreen() {
       [];
     if (recommendations.length > 0) return recommendations;
 
-    const mapClusters =
-      mapClustersQuery.data?.clusters.map((item) => clusterFromMx(item, "map")) ||
-      [];
-    if (mapClusters.length > 0) return mapClusters;
-
     return isAuthenticated ? [] : fallbackClusters;
-  }, [
-    isAuthenticated,
-    mapClustersQuery.data?.clusters,
-    recommendationQuery.data?.recommendations,
-  ]);
+  }, [isAuthenticated, recommendationQuery.data?.recommendations]);
 
   const searchClusters = useMemo(
     () =>
       searchQuery.data?.clusters.map((item) => clusterFromMx(item, "search")) ||
       [],
     [searchQuery.data?.clusters],
+  );
+
+  const mapClusters = useMemo(
+    () => mapClustersQuery.data?.clusters.map((item) => clusterFromMx(item, "map")) || [],
+    [mapClustersQuery.data?.clusters],
   );
 
   const baseVisibleClusters = isAuthenticated
@@ -499,10 +555,25 @@ export function MapScreen() {
     return [matchedCluster || deepLinkedCluster];
   }, [baseVisibleClusters, deepLinkedCluster]);
 
+  const markerClusters = useMemo(() => {
+    if (deepLinkedCluster) return [visibleClusters[0] || deepLinkedCluster];
+    if (isSearching) return searchClusters;
+    if (mapClusters.length > 0) return mapClusters;
+    return visibleClusters;
+  }, [
+    deepLinkedCluster,
+    isSearching,
+    mapClusters,
+    searchClusters,
+    visibleClusters,
+  ]);
+
   const selectedCluster =
     selectedNo === null
       ? null
-      : visibleClusters.find((cluster) => cluster.no === selectedNo) || null;
+      : visibleClusters.find((cluster) => cluster.no === selectedNo) ||
+        markerClusters.find((cluster) => cluster.no === selectedNo) ||
+        null;
 
   const detailPictures = selectedClusterInfoQuery.data?.pictures || [];
   const detailHeroUrl =
@@ -621,12 +692,25 @@ export function MapScreen() {
     const kakao = window.kakao;
     const map = mapRef.current;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
-    markersRef.current = [];
+    if (!kakao?.maps || !map) return;
 
-    if (!kakao?.maps || !map || visibleClusters.length === 0) return;
+    const nextKeys = new Set(markerClusters.map(getClusterMarkerKey));
 
-    markersRef.current = visibleClusters.map((cluster) => {
+    markersRef.current.forEach((marker, key) => {
+      if (!nextKeys.has(key)) {
+        marker.setMap(null);
+        markersRef.current.delete(key);
+      }
+    });
+
+    markerClusters.forEach((cluster) => {
+      const key = getClusterMarkerKey(cluster);
+      const existingMarker = markersRef.current.get(key);
+      if (existingMarker) {
+        existingMarker.setPosition(new kakao.maps.LatLng(cluster.lat, cluster.lng));
+        return;
+      }
+
       const marker = new kakao.maps.Marker({
         map,
         position: new kakao.maps.LatLng(cluster.lat, cluster.lng),
@@ -637,23 +721,27 @@ export function MapScreen() {
         focusCluster(cluster);
       });
 
-      return marker;
+      markersRef.current.set(key, marker);
     });
 
+  }, [focusCluster, markerClusters]);
+
+  useEffect(() => {
     return () => {
       markersRef.current.forEach((marker) => marker.setMap(null));
-      markersRef.current = [];
+      markersRef.current.clear();
     };
-  }, [focusCluster, visibleClusters]);
+  }, []);
 
   useEffect(() => {
     if (
       selectedNo !== null &&
-      !visibleClusters.some((cluster) => cluster.no === selectedNo)
+      !visibleClusters.some((cluster) => cluster.no === selectedNo) &&
+      !markerClusters.some((cluster) => cluster.no === selectedNo)
     ) {
       setSelectedNo(null);
     }
-  }, [selectedNo, visibleClusters]);
+  }, [markerClusters, selectedNo, visibleClusters]);
 
   function requestLocation() {
     if (!navigator.geolocation) return;
@@ -725,6 +813,14 @@ export function MapScreen() {
     setSelectedNo(null);
   }
 
+  function clearFocusedCluster() {
+    if (deepLinkedCluster && typeof window !== "undefined") {
+      window.history.replaceState(null, "", "/map");
+      setDeepLinkedCluster(null);
+    }
+    setSelectedNo(null);
+  }
+
   const listTitle = isAuthenticated
     ? isSearching
       ? "검색 클러스터"
@@ -733,14 +829,15 @@ export function MapScreen() {
 
   const isListLoading =
     isAuthenticated &&
+    !deepLinkedCluster &&
     (isSearching
       ? searchQuery.isFetching
-      : recommendationQuery.isFetching || mapClustersQuery.isFetching);
+      : recommendationQuery.isFetching);
 
   return (
-    <section className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#eef4f2] lg:min-h-dvh">
+    <section className="relative h-[calc(100dvh-7.5rem)] min-h-[520px] overflow-hidden bg-[#eef4f2] lg:h-dvh">
       <div className="absolute inset-0">
-        <div ref={mapContainerRef} className="h-full min-h-[58dvh] lg:min-h-dvh" />
+        <div ref={mapContainerRef} className="h-full" />
       </div>
 
       {mapError ? (
@@ -953,7 +1050,9 @@ export function MapScreen() {
             <div className="flex-1 overflow-y-auto p-4">
               {isListLoading ? (
                 <div className="rounded-md border bg-background p-4 text-sm font-semibold text-muted-foreground">
-                  클러스터를 불러오는 중입니다.
+                  {isSearching
+                    ? "검색 클러스터를 불러오는 중입니다."
+                    : "추천 클러스터를 불러오는 중입니다."}
                 </div>
               ) : null}
 
@@ -1006,7 +1105,7 @@ export function MapScreen() {
               )}
               <button
                 type="button"
-                onClick={() => setSelectedNo(null)}
+                onClick={clearFocusedCluster}
                 aria-label="상세 정보 닫기"
                 className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white hover:bg-black/60"
               >
@@ -1035,7 +1134,7 @@ export function MapScreen() {
                   variant="outline"
                   size="icon"
                   aria-label="상세 정보 닫기"
-                  onClick={() => setSelectedNo(null)}
+                  onClick={clearFocusedCluster}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -1145,7 +1244,7 @@ export function MapScreen() {
         type="button"
         onClick={() => {
           if (panelOpen && selectedCluster) {
-            setSelectedNo(null);
+            clearFocusedCluster();
             return;
           }
 
@@ -1186,8 +1285,34 @@ export function MapScreen() {
         <LocateFixed className="h-4 w-4" />
       </Button>
 
-      <div className="absolute inset-x-0 bottom-0 z-20 max-h-[76dvh] overflow-y-auto rounded-t-xl border bg-card p-4 shadow-soft lg:hidden">
+      <div className="absolute inset-x-0 bottom-0 z-20 max-h-[48dvh] overflow-y-auto rounded-t-xl border bg-card p-3 shadow-soft lg:hidden">
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+        <form className="relative mb-3" onSubmit={submitSearch}>
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+          <Input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSubmittedQuery("");
+              setAiSearchEnabled(false);
+              setSelectedNo(null);
+            }}
+            disabled={!isAuthenticated}
+            className="h-10 border-primary/60 pl-9 pr-10 text-sm disabled:bg-muted/70"
+            placeholder={
+              isAuthenticated ? "메뉴, 장소, 태그 검색" : "로그인 후 검색"
+            }
+            aria-label="모바일 지도 검색"
+          />
+          <button
+            type="submit"
+            disabled={!isAuthenticated || !query.trim()}
+            className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:bg-muted disabled:text-muted-foreground"
+            aria-label="검색"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+        </form>
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-extrabold text-primary">{listTitle}</p>
           {selectedCluster ? (
@@ -1195,7 +1320,7 @@ export function MapScreen() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setSelectedNo(null)}
+              onClick={clearFocusedCluster}
             >
               선택 해제
             </Button>
@@ -1216,6 +1341,7 @@ export function MapScreen() {
                 cluster={cluster}
                 selected={cluster.no === selectedNo}
                 onSelect={() => focusCluster(cluster)}
+                compact
               />
             ),
           )}

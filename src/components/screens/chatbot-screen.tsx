@@ -276,7 +276,7 @@ function ChatEventCard({
 
   if (event.type === "attachments") {
     return (
-      <div className="rounded-md border bg-card p-3">
+      <div className="w-[min(100%,420px)] rounded-md border bg-card p-3">
         <p className="text-sm font-extrabold text-foreground">첨부 이미지</p>
         {event.attachments.length === 0 ? (
           <p className="mt-3 rounded-md bg-background px-3 py-2 text-sm text-muted-foreground">
@@ -368,7 +368,7 @@ function ChatEventCard({
                       current === storeKey ? null : storeKey,
                     )
                   }
-                  className="flex w-full gap-3 rounded-md p-2 text-left hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="grid w-full grid-cols-[64px_minmax(0,1fr)_86px] items-center gap-3 rounded-md p-2 text-left hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex h-14 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#dfeee7] text-primary">
                     {store.thumbnail_url ? (
@@ -395,7 +395,7 @@ function ChatEventCard({
                       {(store.tags || []).join(", ") || "추천 장소 상세를 확인해 보세요."}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-sm bg-primary-soft px-2 py-1 text-xs font-bold text-primary">
+                  <span className="flex min-h-10 items-center justify-center rounded-sm bg-primary-soft px-2 text-center text-xs font-bold leading-4 text-primary">
                     {isExpanded ? "접기" : "상세정보 보기"}
                   </span>
                 </button>
@@ -507,7 +507,9 @@ export function ChatbotScreen() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pendingAttachmentsRef = useRef<PendingAttachment[]>([]);
+  const isStreamingRef = useRef(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
   const [threadId, setThreadId] = useState(() => createThreadId());
   const [chatTitle, setChatTitle] = useState(getFallbackChatTitle());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -602,6 +604,8 @@ export function ChatbotScreen() {
     setMessages([]);
     setDraft("");
     setPendingAttachments([]);
+    isStreamingRef.current = false;
+    setMobileHistoryOpen(false);
     setIsStreaming(false);
   }
 
@@ -616,6 +620,7 @@ export function ChatbotScreen() {
       setMessages(timelineToMessages(context.timeline));
       setDraft("");
       setPendingAttachments([]);
+      setMobileHistoryOpen(false);
     } catch (error) {
       setHistoryError(
         error instanceof Error
@@ -794,7 +799,7 @@ export function ChatbotScreen() {
   );
 
   async function sendMessage(messageOverride?: string) {
-    if (!isAuthenticated || isStreaming) return;
+    if (!isAuthenticated || isStreamingRef.current) return;
 
     const text = (messageOverride ?? draft).trim();
     if (!text && pendingAttachments.length === 0) return;
@@ -823,6 +828,7 @@ export function ChatbotScreen() {
     setMessages((current) => [...current, userMessage, assistantMessage]);
     setDraft("");
     setPendingAttachments([]);
+    isStreamingRef.current = true;
     setIsStreaming(true);
 
     const controller = new AbortController();
@@ -934,6 +940,7 @@ export function ChatbotScreen() {
         ),
       );
     } finally {
+      isStreamingRef.current = false;
       setIsStreaming(false);
       abortControllerRef.current = null;
       localAttachments.forEach((item) => URL.revokeObjectURL(item.previewUrl));
@@ -947,6 +954,7 @@ export function ChatbotScreen() {
 
   function stopStreaming() {
     abortControllerRef.current?.abort();
+    isStreamingRef.current = false;
     setIsStreaming(false);
   }
 
@@ -958,16 +966,25 @@ export function ChatbotScreen() {
   return (
     <section
       className={cn(
-        "grid h-[calc(100dvh-3.5rem)] min-h-0 bg-background lg:h-dvh",
+        "grid h-[calc(100dvh-7.5rem)] min-h-0 bg-background lg:h-dvh",
         sidebarOpen
           ? "lg:grid-cols-[320px_minmax(0,1fr)]"
           : "lg:grid-cols-[0_minmax(0,1fr)]",
       )}
     >
+      {mobileHistoryOpen ? (
+        <button
+          type="button"
+          aria-label="채팅 목록 닫기"
+          onClick={() => setMobileHistoryOpen(false)}
+          className="fixed bottom-16 left-0 right-0 top-14 z-30 bg-black/20 lg:hidden"
+        />
+      ) : null}
       <aside
         className={cn(
-          "hidden min-h-0 overflow-hidden border-r bg-card lg:block",
-          sidebarOpen ? "opacity-100" : "opacity-0",
+          "fixed bottom-16 top-14 z-40 w-[min(85vw,320px)] min-h-0 overflow-hidden border-r bg-card shadow-soft lg:static lg:block lg:w-auto lg:shadow-none",
+          mobileHistoryOpen ? "block" : "hidden",
+          sidebarOpen ? "lg:opacity-100" : "lg:opacity-0",
         )}
       >
         <div className="flex h-full min-w-[320px] flex-col">
@@ -1087,6 +1104,16 @@ export function ChatbotScreen() {
               type="button"
               size="icon"
               variant="outline"
+              className="lg:hidden"
+              aria-label="채팅 목록 열기"
+              onClick={() => setMobileHistoryOpen(true)}
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
               className="hidden lg:inline-flex"
               aria-label="히스토리 패널 토글"
               onClick={() => setSidebarOpen((current) => !current)}
@@ -1124,7 +1151,7 @@ export function ChatbotScreen() {
           ) : null}
 
           {isAuthenticated && !hasMessages ? (
-            <div className="mx-auto flex max-w-2xl flex-col items-center justify-center py-16 text-center">
+            <div className="mx-auto flex max-w-2xl flex-col items-center justify-center py-8 text-center lg:py-16">
               <span className="flex h-14 w-14 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <Sparkles className="h-7 w-7" />
               </span>
