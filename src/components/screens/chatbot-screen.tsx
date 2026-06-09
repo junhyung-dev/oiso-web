@@ -993,7 +993,7 @@ export function ChatbotScreen() {
               <div>
                 <h1 className="text-xl font-extrabold">채팅</h1>
                 <p className="mt-1 text-xs font-semibold text-muted-foreground">
-                  히스토리와 대화 맥락을 이어갑니다
+                  여행 중 필요한 질문을 바로 이어서 물어보세요
                 </p>
               </div>
               <Button
@@ -1013,7 +1013,7 @@ export function ChatbotScreen() {
               <AuthRequiredCard
                 status={status}
                 title="로그인이 필요합니다"
-                description="채팅 스트림, 히스토리 복원, 대화 맥락 저장은 로그인 후 사용할 수 있습니다."
+                description="로그인하면 이전 대화와 추천 내용을 이어서 확인할 수 있습니다."
               />
             </div>
           ) : (
@@ -1123,7 +1123,7 @@ export function ChatbotScreen() {
             <div className="min-w-0">
               <h1 className="truncate text-lg font-extrabold">{chatTitle}</h1>
               <p className="text-xs font-semibold text-muted-foreground">
-                stream_chat_v3 · fetch + ReadableStream
+                메뉴 번역, 장소 추천, 여행 질문을 한곳에서 도와드려요
               </p>
             </div>
           </div>
@@ -1146,7 +1146,7 @@ export function ChatbotScreen() {
             <AuthRequiredCard
               status={status}
               title="로그인 후 채팅을 시작할 수 있습니다"
-              description="채팅 API는 인증이 필요한 흐름으로 구성되어 있습니다."
+              description="OISO가 대화 내용을 기억하고 더 알맞은 추천을 제공할 수 있어요."
             />
           ) : null}
 

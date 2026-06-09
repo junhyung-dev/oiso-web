@@ -12,27 +12,27 @@ export function SettingScreen() {
   const settingItems = [
     {
       icon: Heart,
-      title: "Likes",
-      desc: isAuthenticated ? "/v1/px/get_likes" : "Login required",
+      title: "좋아요",
+      desc: isAuthenticated ? "저장한 장소와 콘텐츠" : "로그인 후 확인할 수 있어요",
     },
     {
       icon: MapPin,
-      title: "Visits",
-      desc: isAuthenticated ? "/v1/px/set_goto based history" : "Login required",
+      title: "방문 기록",
+      desc: isAuthenticated ? "최근 이동과 방문 흐름" : "로그인 후 확인할 수 있어요",
     },
     {
       icon: RefreshCcw,
-      title: "Recommendations",
-      desc: isAuthenticated ? "/v1/px/get_recommendation" : "Login required",
+      title: "추천 관리",
+      desc: isAuthenticated ? "내 취향에 맞춘 추천" : "로그인 후 확인할 수 있어요",
     },
   ];
 
   return (
     <section className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-5 lg:px-8 lg:py-8">
       <div>
-        <h1 className="text-2xl font-bold">Setting</h1>
+        <h1 className="text-2xl font-bold">설정</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your account, likes, visit history, and recommendations.
+          계정 정보와 OISO 이용 내역을 확인합니다.
         </p>
       </div>
 
@@ -52,9 +52,9 @@ export function SettingScreen() {
               )}
             </span>
             <div className="min-w-0">
-              <p className="truncate font-bold">{user?.name || "Guest"}</p>
+              <p className="truncate font-bold">{user?.name || "게스트"}</p>
               <p className="truncate text-sm text-muted-foreground">
-                {user?.email || "Login is required"}
+                {user?.email || "로그인이 필요합니다"}
               </p>
             </div>
           </div>
@@ -67,16 +67,16 @@ export function SettingScreen() {
                   variant="outline"
                   onClick={() => void refreshMe()}
                 >
-                  Refresh account
+                  계정 새로고침
                 </Button>
                 <Button type="button" variant="outline" onClick={logout}>
                   <LogOut className="h-4 w-4" />
-                  Log out
+                  로그아웃
                 </Button>
               </>
             ) : (
               <Button asChild>
-                <Link href="/login">Log in</Link>
+                <Link href="/login">로그인</Link>
               </Button>
             )}
           </div>

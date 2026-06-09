@@ -9,8 +9,8 @@ type AuthStatus = ReturnType<typeof useAuth>["status"];
 
 export function AuthRequiredCard({
   status,
-  title = "Login required",
-  description = "This feature will use authenticated OISO APIs.",
+  title = "로그인이 필요합니다",
+  description = "OISO의 맞춤 기능을 이용하려면 먼저 로그인해 주세요.",
   compact = false,
 }: {
   status: AuthStatus;
@@ -42,7 +42,7 @@ export function AuthRequiredCard({
           </p>
           {!compact ? (
             <Button asChild className="mt-3">
-              <Link href="/login">Log in</Link>
+              <Link href="/login">로그인</Link>
             </Button>
           ) : null}
         </div>

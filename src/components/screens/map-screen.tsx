@@ -87,9 +87,9 @@ const fallbackClusters: ClusterPreview[] = [
   {
     no: 12,
     name: "초록분식",
-    category: "주변 기본 목록",
-    description: "간단한 식사, 로컬, 기본",
-    tags: ["간단한 식사", "로컬", "기본"],
+    category: "주변 추천",
+    description: "간단한 식사, 로컬 맛집",
+    tags: ["간단한 식사", "로컬"],
     distance: "420 m",
     rating: "4.6",
     lat: 35.889,
@@ -99,9 +99,9 @@ const fallbackClusters: ClusterPreview[] = [
   {
     no: 18,
     name: "오이소 카페",
-    category: "주변 기본 목록",
-    description: "커피, 디저트, 기본",
-    tags: ["커피", "디저트", "기본"],
+    category: "주변 추천",
+    description: "커피와 디저트를 즐기기 좋은 곳",
+    tags: ["커피", "디저트"],
     distance: "610 m",
     rating: "4.4",
     lat: 35.893,
@@ -111,9 +111,9 @@ const fallbackClusters: ClusterPreview[] = [
   {
     no: 23,
     name: "시장국수",
-    category: "주변 기본 목록",
-    description: "국수, 시장, 기본",
-    tags: ["국수", "시장", "기본"],
+    category: "주변 추천",
+    description: "시장 근처에서 가볍게 들르기 좋은 국수집",
+    tags: ["국수", "시장"],
     distance: "780 m",
     rating: "4.7",
     lat: 35.884,
@@ -823,9 +823,9 @@ export function MapScreen() {
 
   const listTitle = isAuthenticated
     ? isSearching
-      ? "검색 클러스터"
-      : "추천 클러스터"
-    : "주변 클러스터";
+      ? "검색 결과"
+      : "추천 장소"
+    : "주변 추천";
 
   const isListLoading =
     isAuthenticated &&
@@ -1034,7 +1034,7 @@ export function MapScreen() {
                   <AuthRequiredCard
                     status={status}
                     title="로그인이 필요합니다"
-                    description="로그인 전에는 인증 API를 호출하지 않고 기본 주변 목록만 보여줍니다."
+                    description="로그인하면 현재 위치와 취향에 맞춘 장소를 더 정확하게 추천받을 수 있어요."
                     compact
                   />
                   <Button asChild className="mt-3 w-full">
@@ -1051,14 +1051,14 @@ export function MapScreen() {
               {isListLoading ? (
                 <div className="rounded-md border bg-background p-4 text-sm font-semibold text-muted-foreground">
                   {isSearching
-                    ? "검색 클러스터를 불러오는 중입니다."
-                    : "추천 클러스터를 불러오는 중입니다."}
+                    ? "검색 결과를 불러오는 중입니다."
+                    : "추천 장소를 불러오는 중입니다."}
                 </div>
               ) : null}
 
               {!isListLoading && visibleClusters.length === 0 ? (
                 <div className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
-                  표시할 클러스터가 없습니다.
+                  표시할 장소가 없습니다.
                 </div>
               ) : null}
 

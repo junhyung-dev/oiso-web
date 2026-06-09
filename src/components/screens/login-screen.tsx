@@ -2,10 +2,9 @@
 
 import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { Chrome, Loader2, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Chrome, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/providers/auth-provider";
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -14,11 +13,10 @@ export function LoginScreen() {
   const router = useRouter();
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
-  const [idToken, setIdToken] = useState("");
   const [message, setMessage] = useState(
     googleClientId
-      ? "Google 계정으로 로그인할 수 있습니다."
-      : "NEXT_PUBLIC_GOOGLE_CLIENT_ID가 설정되면 Google 버튼이 활성화됩니다.",
+      ? "Google 계정으로 계속 진행하세요."
+      : "로그인을 준비하는 중입니다. 잠시 후 다시 시도해 주세요.",
   );
   const { loginWithGoogleIdToken, status, user } = useAuth();
   const isLoading = status === "loading";
@@ -58,87 +56,66 @@ export function LoginScreen() {
       theme: "outline",
       size: "large",
       type: "standard",
-      shape: "rectangular",
+      shape: "pill",
       text: "continue_with",
       width: 368,
     });
   }, [loginWithGoogleIdToken, scriptReady]);
 
-  async function submitToken(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!idToken.trim()) {
-      setMessage("Google id_token을 입력하세요.");
-      return;
-    }
-
-    try {
-      await loginWithGoogleIdToken(idToken.trim());
-      setMessage("로그인되었습니다.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "로그인에 실패했습니다.");
-    }
-  }
-
   return (
-    <main className="grid min-h-dvh bg-background px-4 py-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:p-0">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8">
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
         onLoad={() => setScriptReady(true)}
       />
 
-      <section className="hidden items-center justify-center bg-primary-soft p-10 lg:flex">
-        <div className="max-w-md">
-          <div className="flex h-16 w-16 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-soft">
-            <ShieldCheck className="h-8 w-8" />
+      <section className="w-full max-w-[420px]">
+        <div className="mb-7 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-soft">
+            <Sparkles className="h-7 w-7" />
           </div>
-          <h1 className="mt-6 text-4xl font-bold leading-tight text-foreground">
-            OISO
-          </h1>
-          <p className="mt-4 text-base leading-7 text-muted-foreground">
-            지도, 메뉴 번역, 챗봇, 개인화 추천을 같은 계정으로 이어서
-            사용합니다.
+          <h1 className="mt-4 text-4xl font-extrabold tracking-normal">OISO</h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            여행 중 필요한 순간을 더 가볍게 이어가세요.
           </p>
         </div>
-      </section>
 
-      <section className="mx-auto flex w-full max-w-[440px] flex-col justify-center">
-        <div className="rounded-md border bg-card p-5 shadow-soft">
-          <h2 className="text-2xl font-bold">Google 로그인</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Google에서 받은 id_token을 `/v1/auth/google/verify`로 검증하고,
-            OISO JWT를 저장합니다.
-          </p>
+        <div className="rounded-[28px] border bg-card p-6 shadow-soft">
+          <div className="text-center">
+            <h2 className="text-2xl font-extrabold">로그인</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Google 계정으로 OISO를 시작합니다.
+            </p>
+          </div>
 
-          <div className="mt-6">
+          <div className="mt-7">
             {googleClientId ? (
               <div
                 ref={googleButtonRef}
                 className="flex min-h-11 w-full items-center justify-center"
               />
             ) : (
-              <Button type="button" variant="outline" className="w-full" disabled>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 w-full rounded-full"
+                disabled
+              >
                 <Chrome className="h-4 w-4" />
-                Google Client ID 필요
+                Google 로그인 준비 중
               </Button>
             )}
           </div>
 
-          <form className="mt-5 space-y-3 border-t pt-5" onSubmit={submitToken}>
-            <Input
-              value={idToken}
-              onChange={(event) => setIdToken(event.target.value)}
-              placeholder="개발용 Google id_token"
-              aria-label="Google id_token"
-              disabled={isLoading}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <div className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-primary-soft px-3 py-3 text-sm font-bold text-primary">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              토큰 검증
-            </Button>
-          </form>
+              로그인 상태를 확인하는 중입니다.
+            </div>
+          ) : null}
 
-          <p className="mt-4 rounded-md bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">
+          <p className="mt-5 rounded-2xl bg-muted px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
             {message}
           </p>
         </div>

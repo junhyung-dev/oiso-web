@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
+import { AuthRequiredCard } from "@/components/auth/auth-required-card";
 import { Button } from "@/components/ui/button";
 import { getPicNOrder } from "@/lib/api/ax";
 import type {
@@ -27,6 +28,7 @@ import type {
   PicNOrderOcrStructure,
 } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/auth-provider";
 
 const USER_LANGUAGE = "Korean";
 const SUPPORTED_IMAGE_TYPES = new Set([
@@ -78,6 +80,8 @@ function getErrorMessage(error: unknown) {
 }
 
 export function PicOrderScreen() {
+  const { status } = useAuth();
+  const isAuthenticated = status === "authenticated";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -160,6 +164,7 @@ export function PicOrderScreen() {
 
   async function submitOcr(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!isAuthenticated) return;
     if (!selectedFile || fileError || isSubmitting) return;
 
     if (!SUPPORTED_IMAGE_TYPES.has(selectedFile.type)) {
@@ -215,9 +220,17 @@ export function PicOrderScreen() {
           </p>
         </div>
         <div className="rounded-md border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground">
-          User language: {USER_LANGUAGE}
+          표시 언어: 한국어
         </div>
       </div>
+
+      {!isAuthenticated ? (
+        <AuthRequiredCard
+          status={status}
+          title="로그인 후 Pic & Order를 사용할 수 있습니다"
+          description="메뉴판 인식과 주문 확인서는 로그인한 사용자에게 제공됩니다."
+        />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
         <form className="space-y-3" onSubmit={submitOcr}>
@@ -233,7 +246,7 @@ export function PicOrderScreen() {
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               className="sr-only"
-              disabled={isSubmitting}
+              disabled={!isAuthenticated || isSubmitting}
               onChange={onFileChange}
             />
             {previewUrl ? (
@@ -280,7 +293,12 @@ export function PicOrderScreen() {
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
             <Button
               type="submit"
-              disabled={!selectedFile || Boolean(fileError) || isSubmitting}
+              disabled={
+                !isAuthenticated ||
+                !selectedFile ||
+                Boolean(fileError) ||
+                isSubmitting
+              }
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -292,7 +310,7 @@ export function PicOrderScreen() {
             <Button
               type="button"
               variant="outline"
-              disabled={isSubmitting || !selectedFile}
+              disabled={!isAuthenticated || isSubmitting || !selectedFile}
               onClick={clearSelection}
             >
               <RotateCcw className="h-4 w-4" />
